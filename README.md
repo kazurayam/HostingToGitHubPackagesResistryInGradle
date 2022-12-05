@@ -85,23 +85,63 @@ GitHub Packagesを使って自作のJavaプロジェクトのためにMavenレ�
 
 - [GitHub Docs / Working with a GitHub Packages registry /Working with the Gradle registry](https://docs.github.com/ja/packages/working-with-a-github-packages-registry/working-with-the-gradle-registry)
 
+だがそもそもGitHub Packagesって何？どこにあるモノのか？
+
+libraryプロジェクトの[トップページ](https://github.com/kazurayam/gradle-java-library-plugin-library)を開いて、右サイドバーのちょっと下のほうを見ると **Packages** というタイトルが見つかる。*No packages published*と表示されている。わたしがまだPackageを作っていないから当然だ。
+
+![No packages published](docs/images/No_packages_published.png)
+
+ここに **Packages 1** と表示されるようにしたい。これが達成すべき目標だ。
+
 ## 説明
 
 下記のような構成を実現しよう。
 
 ![diagram3](docs/diagrams/out/03_via_shared_Maven_repos/diagram3.png)
 
-子のために次の三つを実装する必要がある。
+これを実現するために次の三つを実装する必要がある。
 
 1. libraryプロジェクトにおいて開発者は２つのレポジトリに向けてjarをpublishする。第一にMavenローカルキャッシュ。第二にGitHub Packages Registryに構築したMavenレポジトリ。これを以下で「**GPRレポジトリ**」と略記する。
-2. consumerプロジェクトのbuild.gradleはlibraryプロジェクトの成果物たるjarを２つのレポジトリを探し出すために二つのレポジトリを探索する。第一にMavenローカルキャッシュ。第二にGPRレポジトリ。指定したnameとversionに合致するjarが見つかりさえすればよい。どちらのレポジトリからでもかまわない。
-3. GradleがGPRレポジトリにアクセスしようとAPIをcallすると、GitHubは Personal Access Token(classic) による認証を要求する。libraryプロジェクトでGradleがGPRレポジトリに向けてjarをpublishするとき、実行時パラメータとして適切なUSERNAMEとKEYを宣言する必要がある。またconsumerプロジェクトでGradleがGPRレポジトリを参照する時にもやはりUSERNAMEとKEYを宣言する必要がある。
+2. consumerプロジェクトのbuild.gradleは２つのレポジトリを探ってlibraryプロジェクトのjarを発見する。第一にMavenローカルキャッシュ。第二にGPRレポジトリ。指定したnameとversionに合致するjarが見つかりさえすればよい。どちらのレポジトリからでもかまわない。
+3. GradleがGPRレポジトリにアクセスしようとAPIをcallすると、GitHubは Personal Access Token(classic) による認証を要求する。libraryプロジェクトにおいてGradleがGPRレポジトリに向けてjarをpublishするとき、実行時パラメータとして適切なUSERNAMEとKEYを宣言する必要がある。またconsumerプロジェクトにおいてGradleがGPRレポジトリを参照する時にも適切なUSERNAMEとKEYを宣言する必要がある。だから準備としてPATを作り、PATをGradleに教える必要がある。
 
 公式ドキュメントを読みながらわたしがやったことを以下にメモする。
 
-### Personal Access Tokenを作りGradleに設定する
+### Personal Access Tokenを作る
+
+Personal Access Token(以下、PATと略記する)の作り方についてはGitHubによる[公式ドキュメント](https://docs.github.com/ja/authentication/keeping-your-account-and-data-secure/creating-a-personal-access-token)を参照願います。わたしはPATを作って下記のように指定した。
+
+![PAT](docs/images/PAT.png)
+
+`write:packages`をONしておく必要があるだろう。
+
+### PATをGradleプロパティとして登録する
+
+自分のPC上の `~/.gradle/gradle.properties` ファイルを下記のように手作業で修正した。
+
+```
+# Username and Key for GitHub Package
+gpr.user=kazurayam
+gpr.key=ghp_************************************
+```
+
+`******`のところに実際には皆さん各自のPersonal Access Tokenの値をここに書くべし。
+
+自分のPC上で動くすべてのGradleプロジェクトにおいて `gpr.user` と `gpr.key` という名前のGradleプロパティが参照可能になる。つまりbuild.gradleファイルの中に次のように書いて `gradle build`を実行すればプロパティの値がprintされるだろう。
+
+```
+println "gpr.user=" + project.findProperty('gpr.user')
+println "gpr.key =" + project.findProperty('gpr.key')
+```
 
 ### libraryプロジェクトのbuild.gradleを修正する
+
+libraryプロジェクトの[build.gradle]()ファイルを修正して、GPRレポジトリに向けてjarファイルをpublishできるようにした。
+
+```
+
+```
+
 
 ### libraryプロジェクトでpublishコマンドを実行する
 
