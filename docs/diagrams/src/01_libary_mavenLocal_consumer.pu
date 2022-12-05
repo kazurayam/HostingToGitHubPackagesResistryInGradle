@@ -1,0 +1,7 @@
+@startuml diagram1
+participant proj1 as "libraryプロジェクト" #Salmon
+database repos as "mavenLocal"
+participant proj2 as "consumerプロジェクト" #99FF99
+proj1 -> repos: gradle publishToMavenLocal
+repos -> proj2: use jar as dependency
+@enduml

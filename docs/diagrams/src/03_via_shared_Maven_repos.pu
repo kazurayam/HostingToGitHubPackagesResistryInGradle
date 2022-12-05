@@ -1,0 +1,15 @@
+@startuml diagram3
+actor       dev    as "開発者"
+participant prj1lc as "libraryプロジェクト" #Salmon
+database    mvr1lc as "mavenLocal"
+participant prj2lc as "consumerプロジェクト" #99FF99
+boundary    network
+database    mvr2pr as "Maven Repos on\nPackages Registry" #CC00FF
+participant prj2ci as "consumer on CI" #33FF99
+dev    -> prj1lc
+prj1lc -> mvr1lc: gradle publishToMavenLocal
+mvr1lc -> prj2lc: use jar as dependency
+dev    -> prj1lc
+prj1lc -> mvr2pr: publish publishMylibPublicationToGprRepository
+mvr2pr -> prj2ci: use jar as dependency
+@enduml

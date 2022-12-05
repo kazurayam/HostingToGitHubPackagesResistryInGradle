@@ -1,0 +1,5 @@
+@startuml diagram2
+database MLCI as "mavenLocal"
+participant proj2CI as "consumerプロジェクト on CI" #33FF99
+MLCI ->x proj2CI: unable to use jar as dependency
+@enduml
