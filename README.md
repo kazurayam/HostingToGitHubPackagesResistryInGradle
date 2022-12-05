@@ -4,12 +4,7 @@ GitHubが公開している GitHub Packages registryにかんするドキュメ�
 
 ## 解決したい問題
 
-Java+Gradleなプロジェクトを２つ自作した。片方を「libraryプロジェクト」、もう一つを「consumerプロジェクト」と略記する。libraryプロジェクトの成果物としてjarファイルを生成し、consumerプロジェクトがそのjarファイルを参照する、という形だ。
-
-
-
-
-ある日のことTom Gregoryの記事 ["How to use Gradle api vs. implementation dependencies"](https://tomgregory.com/how-to-use-gradle-api-vs-implementation-dependencies-with-the-java-library-plugin/)を読んでサンプルコードを写経した。GitHubプロジェクトを二つ作った。記事が示したコードをそのまま打ち込んだだけ。
+Java言語でビルドツールGradle使ったプロジェクトを２つ自作した。以下で、片方を「libraryプロジェクト」、もう一つを「consumerプロジェクト」と略記する。libraryプロジェクトの成果物としてjarファイルを生成し、consumerプロジェクトがそのjarファイルを参照する、という形だ。素材としたのはTom Gregoryの記事 ["How to use Gradle api vs. implementation dependencies"](https://tomgregory.com/how-to-use-gradle-api-vs-implementation-dependencies-with-the-java-library-plugin/)のサンプルコードほぼそのまま。
 
 - https://github.com/kazurayam/gradle-java-library-plugin-library
 - https://github.com/kazurayam/gradle-java-library-plugin-consumer
@@ -38,10 +33,44 @@ consumerプロジェクトのdevelopブランチをpushすればGitHub Actions�
 
 ![consumer_test_on_CI_failed](docs/images/consumer_test_on_CI_failed.png)
 
-なぜ失敗？CI環境で起動されたconsumerプロジェクトのビルドがlibraryプロジェクトのjarを得ようとしてmavenLocalレポジトリを参照したが見つからなかったから。mavenLocalを参照するのではダメだ。
+なぜ失敗したのか？CI環境で起動されたconsumerプロジェクトのビルドがlibraryプロジェクトのjarを得ようとしてmavenLocalレポジトリを参照したが、空っぽだから、libraryプロジェクトのjarが見つからなかったから。mavenLocalを参照するのではダメだ。
 
-もう一つの方法としてMaven Centralレポジトリを使うこともできるが気がすすまない。Maven Centralは表舞台だ。人様の目に晒すに値すると自分が思える程度に真剣に作ったプロジェクトならMaven Centralに上げるのもいい。しかしプログラミングの学習ためにちょっと作った程度の軽いものをMaven Centralに上げるのは適当でない。それにMaven Centralに向けてpublishすると、コマンドを実行してからサイトでjarが実際に公開されるまで二、三日も待たされる（なんで待たされるのか理由をわたしは知らない）。三日も待たされるからMaven Centralを学習の道具として使うべきでない。
+一つの方法としてMaven Centralレポジトリにlibraryプロジェクトのjarをpublishするという方法も考えられるが、この方法は採用できない。自分が真剣に作ったプロジェクトを他人様と共有したいと望むならばMaven Centralに上げるのが良かろう。しかし学習ために作った軽いプロジェクトをMaven Centralに上げるべきではない。Maven Centralは表舞台だ、稽古場ではない。それにMaven Centralに向けてpublishすると、コマンドを実行してからサイトでjarが実際に公開されるまで二、三日も待たされる。待たされるからMaven Centralは学習の道具としては不適当だ。
 
-##
+結局、私はlibraryプロジェクトのために
+mavenCentral、mavenLocal以外のMavenレポジトリを作り、consumerプロジェクトが第三のMavenレポジトリを参照する、という形を構築したい。
+
+## 解決方法
+
+GitHub Packagesを使って自作のJavaプロジェクトのためにMavenレポジトリをGradleで構築することができる。下記に公式ドキュメントがある。
+
+- [GitHub Docs / Working with a GitHub Packages registry /Working with the Gradle registry](https://docs.github.com/ja/packages/working-with-a-github-packages-registry/working-with-the-gradle-registry)
+
+## 説明
+
+公式ドキュメントを読みながらわたしがやったことを以下にメモする。
+
+### Personal Access Tokenを作る
+
+### ~.gradle/gradle.properties を修正する
+
+PATをGradleプロパティとして参照可能にする
+
+### libraryプロジェクトのbuild.gradleを修正する
+
+がjarをPackages上のMavenレポジトリにpublishするように設定する
+
+### libraryプロジェクトでpublishコマンドを実行する
+
+### consumerプロジェクトのbuild.gradleを修正する
+
+がPackages上記ののMavenレポジトリからjarを参照するように設定する
+
+
+## 結論
+
+
+
+
 
 
