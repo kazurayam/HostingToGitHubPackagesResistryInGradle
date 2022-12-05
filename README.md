@@ -1,6 +1,6 @@
 ## 要旨
 
-GitHubが公開している GitHub Packages registryにかんするドキュメント ["Working with the Gradle registry"](https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-gradle-registry)に書いてある手順を適用してMavenレポジトリを作り、自作したプロジェクト２つがMavenレポジトリを介してjarファイルを受け渡しするという構成を作ることに成功した。プログラミング言語はJava、ビルドツールはGradle。事例として報告します。
+[GitHub Packages registry](https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-gradle-registry)にMavenレポジトリを作り、自作プロジェクト二つがMavenレポジトリを介してjarファイルを受け渡しする構成を作った。プログラミング言語はJava、ビルドツールはGradle。事例として報告します。
 
 ## 解決したい問題
 
@@ -35,16 +35,14 @@ $ tree ~/.m2/repository/com/tomgregory/
 2 directories, 5 files
 ```
 
-いっぽう consumerプロジェクトはmavenLocalにアクセスしてlibraryプロジェクトのjarを参照する。consumerプロジェクトのbuild.gradleにこう書いてあるからだ。
+いっぽう consumerプロジェクトはmavenLocalにアクセスしてlibraryプロジェクトのjarを参照する。consumerプロジェクトのbuild.gradleにこう書いてある。
 
 ```
 repositories {
   mavenLocal()
 }
 dependencies {
-  implementation group: 'com.tomgregory',
-      name: 'gradle-java-library-plugin-library',
-      version: '0.0.1-SNAPSHOT'
+  implementation group: 'com.tomgregory', name: 'gradle-java-library-plugin-library', version: '0.0.1-SNAPSHOT'
 }
 ```
 
@@ -68,11 +66,11 @@ BUILD SUCCESSFUL in 9s
 
 - [.github/workflows/tests.yml](https://github.com/kazurayam/gradle-java-library-plugin-consumer/blob/0.1.1/.github/workflows/tests.yml)
 
-consumerプロジェクトのdevelopブランチをpushしよう。するとGitHub Actionsのワークフローによりリモートのサーバー上で `gradle testが` 実行される。いざ実行したら失敗した。
+consumerプロジェクトのdevelopブランチをGitHubへpushした。するとGitHub Actionsのワークフローによりリモートのサーバー上で `gradle testが` 実行されたが失敗した。
 
 ![consumer_test_on_CI_failed](docs/images/consumer_test_on_CI_failed.png)
 
-なぜ失敗したのか？CI環境で起動されたconsumerプロジェクトのビルドがlibraryプロジェクトのjarを得ようとしてmavenLocalレポジトリを参照したが、空っぽなので、libraryプロジェクトのjarが見つからなかったからだ。この様子を図にすると次の通り。
+なぜ失敗したのか？CI環境で起動されたconsumerプロジェクトのビルドがlibraryプロジェクトのjarを得ようとしてmavenLocalレポジトリを参照したが、CIマシン上のmavenLocalは空っぽなので、libraryプロジェクトのjarが見つからなかったからだ。この様子を図にすると次の通り。
 
 ![diagram2](./docs/diagrams/out/02_CI_refering_to_mavenLocal/diagram2.png)
 
@@ -96,27 +94,18 @@ GitHub Packagesを使って自作のJavaプロジェクトのためにMavenレ�
 子のために次の三つを実装する必要がある。
 
 1. libraryプロジェクトにおいて開発者は２つのレポジトリに向けてjarをpublishする。第一にMavenローカルキャッシュ。第二にGitHub Packages Registryに構築したMavenレポジトリ。これを以下で「**GPRレポジトリ**」と略記する。
-2. consumerプロジェクトのbuild.gradleはlibraryプロジェクトの成果物たるjarを２つのレポジトリを探索する。第一にMavenローカルキャッシュ。第二にGPRレポジトリ。jarが見つかりさえすればよくて、どちらでもかまわない。
-3. GPRレポジトリにアクセスしようとAPIをcallすると、GitHubはPersonal Access Token(classic)による認証を要求する。libraryプロジェクトのGradleがGPRレポジトリに向けてjarをpublishするとき、実行時パラメータとして適切なUSERNAMEとKEYを宣言する必要がある。またconsumerプロジェクトのGradleがGPRレポジトリを参照する時にもやはりUSERNAMEとKEYを宣言する必要がある。
+2. consumerプロジェクトのbuild.gradleはlibraryプロジェクトの成果物たるjarを２つのレポジトリを探し出すために二つのレポジトリを探索する。第一にMavenローカルキャッシュ。第二にGPRレポジトリ。指定したnameとversionに合致するjarが見つかりさえすればよい。どちらのレポジトリからでもかまわない。
+3. GradleがGPRレポジトリにアクセスしようとAPIをcallすると、GitHubは Personal Access Token(classic) による認証を要求する。libraryプロジェクトでGradleがGPRレポジトリに向けてjarをpublishするとき、実行時パラメータとして適切なUSERNAMEとKEYを宣言する必要がある。またconsumerプロジェクトでGradleがGPRレポジトリを参照する時にもやはりUSERNAMEとKEYを宣言する必要がある。
 
 公式ドキュメントを読みながらわたしがやったことを以下にメモする。
 
-### Personal Access Tokenを作る
-
-### ~.gradle/gradle.properties を修正する
-
-PATをGradleプロパティとして参照可能にする
+### Personal Access Tokenを作りGradleに設定する
 
 ### libraryプロジェクトのbuild.gradleを修正する
-
-がjarをPackages上のMavenレポジトリにpublishするように設定する
 
 ### libraryプロジェクトでpublishコマンドを実行する
 
 ### consumerプロジェクトのbuild.gradleを修正する
-
-がPackages上記ののMavenレポジトリからjarを参照するように設定する
-
 
 ## 結論
 
