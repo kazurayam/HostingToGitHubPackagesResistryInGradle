@@ -92,7 +92,7 @@ libraryプロジェクトの[トップページ](https://github.com/kazurayam/gr
 
 ![No packages published](docs/images/No_packages_published.png)
 
-ここに **Packages 1** と表示されるようにしたい。これが達成すべき目標だ。
+ここに **Packages 1** と表示されるようにしたい。これがわたしの達成目標だ。
 
 ## 説明
 
@@ -126,13 +126,25 @@ gpr.user=kazurayam
 gpr.key=ghp_************************************
 ```
 
-`******`のところに実際には皆さん各自のPersonal Access Tokenの値をここに書くべし。
-
-自分のPC上で動くすべてのGradleプロジェクトにおいて `gpr.user` と `gpr.key` という名前のGradleプロパティが参照可能になる。つまりbuild.gradleファイルの中に次のように書いて `gradle build`を実行すればプロパティの値がprintされるだろう。
+`******`のところに実際には皆さん各自のPersonal Access Tokenの値をここに書くべし。これで `gpr.user` と `gpr.key` という名前のGradleプロパティが自分のPC上で動くすべてのGradleプロジェクトにおいて参照可能になる。だからbuild.gradleファイルの中に次のように書いて `gradle build`を実行すればプロパティの値がprintされる。
 
 ```
 println "gpr.user=" + project.findProperty('gpr.user')
 println "gpr.key =" + project.findProperty('gpr.key')
+```
+
+こんなふうに
+
+```
+$ gradle build
+
+> Configure project :
+gpr.user=kazurayam
+gpr.key =ghp_************************************
+
+BUILD SUCCESSFUL in 1s
+2 actionable tasks: 2 executed
+
 ```
 
 ### libraryプロジェクトのbuild.gradleを修正する
@@ -140,13 +152,67 @@ println "gpr.key =" + project.findProperty('gpr.key')
 libraryプロジェクトの[build.gradle]()ファイルを修正して、GPRレポジトリに向けてjarファイルをpublishできるようにした。
 
 ```
-
+publishing {
+    repositories {
+        maven {
+            name = "gpr"
+            url = uri("https://maven.pkg.github.com/kazurayam/gradle-java-library-plugin-library")
+            credentials {
+                username = project.findProperty("gpr.user") ?: System.getenv("GPR_USERNAME")
+                password = project.findProperty("gpr.key") ?: System.getenv("GPR_TOKEN")
+            }
+        }
+    }
+    publications {
+        Mylib(MavenPublication) {
+            from components.java
+        }
+    }
+}
 ```
+
+この記述が何をしているかというと次の二つだ。
+
+1. `Mylib` という名前のpublicationを宣言している
+2. `gpr` という名前のrepositoryを宣言している
+
+なお`gpr`レポジトリに関する記述の中で
+1. `url`としてプロジェクトのownerつまりわたしのGitHubアカウント名とプロジェクト名を含むURLを指定している。だからGitHub Packages registryに作られるMavenレポジトリはGitHubレポジトリ毎に固有のURLを持つことになる。
+
+2. Personal Access Tokenの値をusernameとpasswordパラメータとして指定している
+
+この２点に注目してほしい。
+
 
 
 ### libraryプロジェクトでpublishコマンドを実行する
 
+libraryプロジェクトのjarを`gpr`レポジトリにpublishするタスクを実行した。
+
+```
+:~/github/gradle-java-library-plugin-library (master *)
+$ gradle publishMylibPublicationToGprRepository
+
+BUILD SUCCESSFUL in 19s
+5 actionable tasks: 3 executed, 2 up-to-date
+
+```
+
+タスクの名前 `publishMylibPublicationToGprRepository` は build.gradleの中の `publishing` の記述に基づいて規則的に導き出されたものだ。つまり
+
+`publish` + *publication名* + `PublicationTo` + *repositoryのname* + `Repository`
+
+がタスク名になる。publication名とrepositoryのnameは自由に置き換えて構わない。ただしタスク名がそれを反映して別になることに注意のこと。
+
+タスクを実行して成功した。libraryプロジェクトの[GitHubトップページ](https://github.com/kazurayam/gradle-java-library-plugin-library)を見たら、あら目出度いや、**Packages 1**と表示された。Packageを作ることに成功した。
+
+
+
+
+
 ### consumerプロジェクトのbuild.gradleを修正する
+
+
 
 ## 結論
 
