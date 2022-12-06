@@ -256,7 +256,7 @@ Execution failed for task ':compileJava'.
             > Username must not be null!
 ```
 
-`Username must not be null!`というメッセージから推測できることがある。GitHub Actionsによってconsumerプロジェクトのbuild.gradleが動いた時にGradleプロパティ `gpr.user` と `gpr.key` が存在していないのだ。GitHub ActionsのワークフローがなんとかしてGradleプロパティ `gpr.user` と `gpr.key` を作って値を送り込みたい。どうすればいいか？
+`Username must not be null!`というメッセージから次のように推測することができる。GitHub Actionsによってconsumerプロジェクトのbuild.gradleが動いた時にGradleプロパティ `gpr.user` と `gpr.key` が無いのだ。GitHub ActionsのワークフローがなんとかしてGradleプロパティ `gpr.user` と `gpr.key` を作って値を設定したい。どうすればいいか？
 
 ### CI環境に ~/.gradle/gradle.properties ファイルを復元する
 
@@ -309,7 +309,7 @@ gpr.key=ghp_************************************
 3. 左サイドメニューの中で `Secrets` > `Actions` をクリック
 4. `New repository secret`ボタンを押す
 
-すると https://github.com/kazurayam/gradle-java-library-plugin-consumer/settings/secrets/actions にたどり着い他ので、ここでわたしは 新しいsecretとして `GRADLE_REPOSITORIES` を作った。その内容は前述した2行だ。
+すると [/settings/secrets/secrets/actionsページ](https://github.com/kazurayam/gradle-java-library-plugin-consumer/settings/secrets/actions) に着地した。ここでわたしは 新しいsecret `GRADLE_REPOSITORIES` を作った。その内容は2行、前述したとおり。
 
 ![Actions-secretes](docs/images/Actions-secrets.png)
 
@@ -317,7 +317,9 @@ gpr.key=ghp_************************************
 
 ## 結論
 
-[GitHub Docs / Working with a GitHub Packages registry /Working with the Gradle registry](https://docs.github.com/ja/packages/working-with-a-github-packages-registry/working-with-the-gradle-registry)を参考にしながら、自作の [libraryプロジェクト](https://github.com/kazurayam/gradle-java-library-plugin-library) のためにGitHub PackagesにMavenレポジトリを作った。ローカルPC上で `gradle publishMlibPublicationToPgrRepositlry` コマンドを手動で実行してjarファイルをpublishすることができた。また自作の [consumerプロジェクト](https://github.com/kazurayam/gradle-java-library-plugin-consumer)にGitHub Actionsワークフローで自動化テストを実現し、libraryプロジェクトのMavenレポジトリを参照することに成功した。
+[GitHub Docs / Working with a GitHub Packages registry /Working with the Gradle registry](https://docs.github.com/ja/packages/working-with-a-github-packages-registry/working-with-the-gradle-registry)を参考にしながら、自作の [libraryプロジェクト](https://github.com/kazurayam/gradle-java-library-plugin-library) のためにGitHub PackagesにMavenレポジトリを作った。ローカルPC上で `gradle publishMylibPublicationToGprRepositlry` コマンドを手動で実行することにより、GitHub Packages上のMaveレポジトリにjarファイルをpublishすることができた。また自作の [consumerプロジェクト](https://github.com/kazurayam/gradle-java-library-plugin-consumer)にGitHub Actionsワークフローによる自動化テストを実装し、libraryプロジェクトのMavenレポジトリを参照することに成功した。Packages上のレポジトリにはPersonal Access Tokenによる認証が必須であるが、それを通過するための実装上の問題点をクリアすることができた。
 
-"GitHub Packages"というキーワードでネットを検索するとたくさんの記事が見つかるものの、わたしが今回試した方法を解説してくれる記事は見当たらなかった。Node+npm、Dockerコンテナの話が多くてGradle+Mavenの話は多くない。またPckageを作る処理をActionsで実現したというQiita記事があるが、手動で "gradle publishXXXXX" コマンドを投入するというローテクなやり方の紹介はほとんど無かった。こんなやり方もあるんですよ。
+"GitHub Packages"というキーワードでネットを検索するとかなり多くの記事が見つかる。しかし今回わたしが試した方法を解説してくれる記事は見当たらなかった。Npm、Dockerコンテナの話が多くてMavenレポジトリの話がそもそも少ない。ビルドツールGradleを使う事例も少ない。またGitHub ActionsでPackageを作った的な記事が多くて、"gradle publishXXXXX” コマンドを手動実行してPackageを作ったというローテクな記事は皆無だった。
+
+こんなやり方もあるんですよ。
 
