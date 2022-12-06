@@ -293,20 +293,31 @@ gpr.user=kazurayam gpr.key=ghp_************************************
 
 ### Personal Access Tokenの値をGitHub Actions Secretsに格納してActionsワークフローに渡す
 
-さて大詰めです。
+さて大詰めです。consumerプロジェクトのGitHub Actionワークフローは ``${{ secrets.GRADLE_PROPERTIES }}`` という記号を使って下記の文字列が参照できることを仮定しています。
 
+```
+gpr.user=kazurayam
+gpr.key=ghp_************************************
+```
 
+では `secretes.GRADLE_PROPERTIES` をどうやって作り出せばいいのでしょうか？
 
-https://docs.github.com/en/rest/actions/secrets?apiVersion=2022-11-28
+*(答)* [GitHub Actions Secrets](https://docs.github.com/en/rest/actions/secrets)を使え
 
+1. 自分のアカウントでGitHubにログインして、Secretを設定する対象となるレポジトリのページを開く。
+2. `Settings`タブをクリック
+3. 左サイドメニューの中で `Secrets` > `Actions` をクリック
+4. `New repository secret`ボタンを押す
 
+すると https://github.com/kazurayam/gradle-java-library-plugin-consumer/settings/secrets/actions にたどり着い他ので、ここでわたしは 新しいsecretとして `GRADLE_REPOSITORIES` を作った。その内容は前述した2行だ。
 
+![Actions-secretes](docs/images/Actions-secrets.png)
 
+`secrets.GRADLE_PROPERTIES`を設定したあと、consumerプロジェクトのworkflowを動かした。めでたくテストがpassした。
 
 ## 結論
 
+[GitHub Docs / Working with a GitHub Packages registry /Working with the Gradle registry](https://docs.github.com/ja/packages/working-with-a-github-packages-registry/working-with-the-gradle-registry)を参考にしながら、自作の [libraryプロジェクト](https://github.com/kazurayam/gradle-java-library-plugin-library) のためにGitHub PackagesにMavenレポジトリを作った。ローカルPC上で `gradle publishMlibPublicationToPgrRepositlry` コマンドを手動で実行してjarファイルをpublishすることができた。また自作の [consumerプロジェクト](https://github.com/kazurayam/gradle-java-library-plugin-consumer)にGitHub Actionsワークフローで自動化テストを実現し、libraryプロジェクトのMavenレポジトリを参照することに成功した。
 
-
-
-
+"GitHub Packages"というキーワードでネットを検索するとたくさんの記事が見つかるものの、わたしが今回試した方法を解説してくれる記事は見当たらなかった。Node+npm、Dockerコンテナの話が多くてGradle+Mavenの話は多くない。またPckageを作る処理をActionsで実現したというQiita記事があるが、手動で "gradle publishXXXXX" コマンドを投入するというローテクなやり方の紹介はほとんど無かった。こんなやり方もあるんですよ。
 
