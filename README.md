@@ -88,11 +88,21 @@ GitHub Packagesを使って自作のJavaプロジェクトのためにMavenレ�
 
 だがそもそもGitHub Packagesって何？どこにあるモノのか？
 
-libraryプロジェクトの[トップページ](https://github.com/kazurayam/gradle-java-library-plugin-library)を開いて、右サイドバーのちょっと下のほうを見ると **Packages** というタイトルが見つかる。*No packages published*と表示されている。わたしがまだPackageを作っていないから当然だ。
+自分のアカウントでGitHubにログインするとタブが並んでいる。`Overview` |  `Repositories` | `Projects` | `Packages`。この中の `Packages` タブをクリックすると現時点でわたしが持っているGitHub Packagesの一覧が見られる。こんなふうに。
+
+![tabs](docs/images/Your-Packages.png)
+
+>わたしのPackagesはどれもゴミなので詳細を伏せ字にしました。
+
+GitHubが提供するサービス群の中で`Packages` は `Repositories` と同じレベルに位置付けられている。このことを理解しておきましょう。
+
+次に個別のレポジトリに目を向けましょう。libraryプロジェクトの[レポジトリ gradle-java-library-plugin-library](https://github.com/kazurayam/gradle-java-library-plugin-library)を開いて、右サイドバーのちょっと下のほうを見ると **Packages** というタイトルが見つかる。*No packages published*と表示されている。
 
 ![No packages published](docs/images/No_packages_published.png)
 
-ここに **Packages 1** と表示されるようにしたい。これがわたしの達成目標だ。
+GitHubのレポジトリをPackage群とを画面で結びつけることで、便利なようにしているんだな。大多数のレポジトリはリンクするPackageを持たないが、たまに1個のPackageとリンクしているレポジトリがある。でも1個のレポジトリが2つ以上のPackageとリンクするってことは、あまりありそうにない。
+
+gradle-java-library-plugin-libraryレポジトリのトップ画面のここに **Packages 1** と表示されるようにしたい。これがわたしの達成目標だ。
 
 ## 説明
 
@@ -164,7 +174,7 @@ publishing {
         }
     }
     publications {
-        Mylib(MavenPublication) {
+        mylib(MavenPublication) {
             from components.java
         }
     }
@@ -177,12 +187,12 @@ publishing {
 2. `gpr` という名前のrepositoryを宣言している
 
 なお`gpr`レポジトリに関する記述の中で
-1. `url`としてプロジェクトのownerつまりわたしのGitHubアカウント名とプロジェクト名を含むURLを指定している。だからGitHub Packages registryに作られるMavenレポジトリはGitHubレポジトリ毎に固有のURLを持つことになる。
+
+1. `url`の中にプロジェクトのownerつまり *GitHubアカウント名* と *プロジェクト名* が含まれる。
 
 2. Personal Access Tokenの値をusernameとpasswordパラメータとして指定している
 
-この２点に注目してほしい。
-
+>なおここで指定するURLには注意を要する。 URLの中の *プロジェクト名* の部分に別のプロジェクトの名前をうっかり書いてしまうかもしれない。別のプロジェクトのbuild.gradleファイルから `repository` の記述をコピペすると、URLの中の *プロジェクト名* を書き換えるのをうっかり忘れてしまうかもしれない。実際わたしはこのミスをやらかした。publishコマンドを実行した時にエラーは発生しなかった。ただし本来あるべきGitHubレポジトリではなくて、間違えた別レポジトリの中にlibraryプロジェクトのPackageが作られてしまった。こういうミスをやらかしたせいで、あとで `Received status code 422 from server: Unprocessable Entity` というエラーメッセージに遭遇した。何が原因なのか分からなくて困った。
 
 
 ### libraryプロジェクトでpublishコマンドを実行する
@@ -204,13 +214,92 @@ BUILD SUCCESSFUL in 19s
 
 がタスク名になる。publication名とrepositoryのnameは自由に置き換えて構わない。ただしタスク名がそれを反映して別になることに注意のこと。
 
-タスクを実行して成功した。libraryプロジェクトの[GitHubトップページ](https://github.com/kazurayam/gradle-java-library-plugin-library)を見たら、あら目出度いや、**Packages 1**と表示された。Packageを作ることに成功した。
+タスクを実行して成功した。libraryプロジェクトの[GitHubトップページ](https://github.com/kazurayam/gradle-java-library-plugin-library)を見たら、あら目出度や、**Packages 1**と表示された。Packageを作ることに成功した。
 
-
-
-
+![one_package](./docs/images/One_package_is_published.png)
 
 ### consumerプロジェクトのbuild.gradleを修正する
+
+さて、consumerプロジェクトのbuild.gradleファイルを修正して、gprレポジトリを参照するように設定しよう。
+
+```
+repositories {
+    mavenCentral()
+    maven {
+        url = uri("https://maven.pkg.github.com/kazurayam/gradle-java-library-plugin-library")
+        credentials {
+            username = project.findProperty("gpr.user") ?: System.getenv("GPR_USERNAME")
+            password = project.findProperty("gpr.key") ?: System.getenv("GPR_TOKEN")
+        }
+    }
+    mavenLocal()
+}
+```
+
+こんなふうにbuild.gradleファイルを修正してgit addしてgit commitしてgit pushした。GitHub Actionsで自動化テストが起動された。
+
+ところがテストが失敗した。こういうメッセージが出力された。
+
+```
+> Task :compileJava FAILED
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':compileJava'.
+> Could not resolve all files for configuration ':compileClasspath'.
+   > Could not resolve com.tomgregory:gradle-java-library-plugin-library:0.0.1.
+     Required by:
+         project :
+      > Could not resolve com.tomgregory:gradle-java-library-plugin-library:0.0.1.
+         > Could not get resource 'https://maven.pkg.github.com/kazurayam/gradle-java-library-plugin-library/com/tomgregory/gradle-java-library-plugin-library/0.0.1/gradle-java-library-plugin-library-0.0.1.pom'.
+            > Username must not be null!
+```
+
+`Username must not be null!`というメッセージから推測できることがある。GitHub Actionsによってconsumerプロジェクトのbuild.gradleが動いた時にGradleプロパティ `gpr.user` と `gpr.key` が存在していないのだ。GitHub ActionsのワークフローがなんとかしてGradleプロパティ `gpr.user` と `gpr.key` を作って値を送り込みたい。どうすればいいか？
+
+### CI環境に ~/.gradle/gradle.properties ファイルを復元する
+
+consumerプロジェクトの [`.github/workflows/tests.yml`](https://github.com/kazurayam/gradle-java-library-plugin-consumer/blob/develop/.github/workflows/tests.yml)ファイルに次のような行を挿入した。
+
+```
+      - name: Restore gradle.properties
+        env:
+          GP: ${{ secrets.GRADLE_PROPERTIES }}
+        shell: bash
+        run: |
+          mkdir -p ~/.gradle/
+          echo "${GP}" > ~/.gradle/gradle.properties
+```
+
+このコードは ``${{ secrets.GRADLE_PROPERTIES }}`` が次のような文字列を返すことを期待している。
+
+```
+gpr.user=kazurayam
+gpr.key=ghp_************************************
+```
+
+これはわたしが自分のPCで ~/.gradle/gradle.properties ファイルに書き込んだ2行と同じ。つまりGradleプロパティ `gpr.user` と `gpr.key` を宣言するための記述だ。
+
+ワークフローに挿入したbashスクリプトはCIマシン上に `~/.gradle/gradle.properties`ファイルを新しく作る。その中に 変数参照 ``${{ secrets.GRADLE_PROPERTIES }}`` の内容をそのまま書き込む。つまりローカル環境で参照していた`gradle.properites`ファイルと同じ物をCI環境に再現するのだ。`gradle.properties`ファイルがCI環境で再現されれば `gradle test`タスクが動いた時、ローカル環境と同じように、Gradleプロパティ `gpr.user` と `gpr.key` が参照可能になり、`Username must not be null!`のエラーが解消するはずだ。
+
+### echoコマンドにご注意を
+
+ここで注意一つ。ワークフロー定義の中で `echo "${GRALDE_PROPERTIES}"` のように二重引用符合 " " で囲っている。" "を忘れると シェル変数 `GP` の値がこうなってしまう。
+```
+gpr.user=kazurayam gpr.key=ghp_************************************
+```
+" "が無いとechoコマンドが改行文字を空白文字に置換してしまうのだ。こうなるとGradleプロパティ `gpr.user` と `gpr.key` の値はおかしくなってしまう。そのせいで consumerプロジェクトのCIがlibraryプロジェクトのMavenレポジトリを参照しようとした時 `401 Unauthorized`　エラーが発生してしまう。
+
+### Personal Access Tokenの値をGitHub Actions Secretsに格納してActionsワークフローに渡す
+
+さて大詰めです。
+
+
+
+https://docs.github.com/en/rest/actions/secrets?apiVersion=2022-11-28
+
+
 
 
 
